@@ -74,8 +74,48 @@ const createPages = (apiYaml, deref, apiVersion) => {
     const newDirName = getTagSlug(tag.name);
     fs.mkdirSync(`./content/en/api/${apiVersion}/${newDirName}`, {recursive: true});
 
+    // just get this sections data
+    const actions = {};
+    const data = Object.keys(deref.paths)
+      .filter((path) => isTagMatch(deref.paths[path], tag.name))
+      .forEach((path) => {
+
+        Object.entries(deref.paths[path]).forEach(([actionKey, action]) => {
+          //const responses = action.responses.filter((x) => );
+          const item = {
+            description: action.description,
+            summary: action.summary,
+            responses: {}
+          }
+          if (action.requestBody) {
+            item['request_description'] = action.requestBody.description || '';
+            if(action.requestBody.content && action.requestBody.content["application/json"]) {
+              item['request_schema_description'] = action.requestBody.content["application/json"].schema.description || '';
+            }
+          }
+          if (action.responses) {
+            Object.entries(action.responses).forEach(([responseKey, resp]) => {
+              const respObj = {
+                description: resp.description
+              }
+              if(resp.content && resp.content["application/json"] && resp.content["application/json"].schema && resp.content["application/json"].schema.description) {
+                respObj["schema_description"] = resp.content["application/json"].schema.description;
+              }
+              item['responses'][responseKey] = respObj;
+            });
+          }
+          actions[action.operationId] = item;
+        });
+
+        //deref.paths[path]
+      });
+
     // make frontmatter
-    const indexFrontMatter = {title: tag.name};
+    const indexFrontMatter = {
+      title: tag.name,
+      description: tag.description,
+      actions: actions
+    };
     let indexYamlStr = yaml.safeDump(indexFrontMatter);
     indexYamlStr = `---\n${indexYamlStr}---\n`;
 

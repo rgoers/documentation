@@ -62,7 +62,7 @@
 
             {{ $tagObject := $.Scratch.Get "tagObject"  }}
 
-            <h1>{{ $v.name }}</h1>
+            <h1>{{ $.Params.title | default $v.name }}</h1>
 
             <div class="row">
                 <div class="col-12 col-lg-9">
@@ -70,13 +70,13 @@
                     <!-- If endpoint is deprecated -->
                     {{ if eq (index $v "x-deprecated") true}}
                         <div class="alert alert-danger">
-                            {{$v.description | markdownify}}
+                            {{$.Params.description | default $v.description | markdownify}}
                             {{$v.externalDocs.description}} <a href="{{$v.externalDocs.url}}">{{$v.externalDocs.url}}</a>
                         </div>
                     {{ else }}
 
 
-                        {{ $markdown := $v.description | markdownify }}
+                        {{ $markdown := $.Params.description | default $v.description | markdownify }}
 
                         <!-- need this because hugo sometimes duplicates <p> when using markdownify -->
                         {{ if not ( strings.Contains $markdown "<p>" ) }}
@@ -93,6 +93,12 @@
             {{/* sort by action summary */}}
             {{ range sort $tagObject ".action.summary" "asc"  }}
                 {{ $context := . }}
+
+                <!-- get action strings from params, why? because they are translated here -->
+                {{ $paramsAction := (dict) }}
+                {{ with $.Params.actions }}
+                    {{ $paramsAction = (index $.Params.actions (lower .action.operationId)) }}
+                {{ end }}
 
                 <!-- check if endpoint has own `server` object and set those as the server urls -->
                 {{ with .action.servers }}
@@ -128,7 +134,7 @@
                 <div class="row">
                     <div class="col-12 col-lg-9">
                         <h2 class="mb-2" id="{{ .action.summary | urlize }}">
-                            <a href="#{{ .action.summary | urlize }}">{{- .action.summary -}}</a>
+                            <a href="#{{ .action.summary | urlize }}">{{- $paramsAction.summary | default .action.summary -}}</a>
                         </h2>
                         {{ with index .action "x-unstable"}}
                         <div class="alert alert-warning mb-2">
@@ -137,8 +143,8 @@
                         {{ end }}
                         <p class="mb-0"><span style="padding: 3px" class="font-semibold text-api-{{ .actionType }} bg-bg-api-{{ .actionType }}">{{ .actionType | upper }}</span>&nbsp;{{ range $.Scratch.Get "serverURLS" }}<span class="d-none" data-region="{{ .region }}">{{ .url }}</span>{{ end }}<span>{{.pathKey}}</span>
                         </p>
-                        <h3 class="mt-2">Overview</h3>
-                        <p>{{.action.description | markdownify }}</p>
+                        <h3 class="mt-2">{{ i18n "overview" }}</h3>
+                        <p>{{ $paramsAction.description | default .action.description | markdownify }}</p>
 
                         {{ $.Scratch.Set "queryStrings" slice }}
                         {{ $.Scratch.Set "pathParams" slice }}
@@ -146,7 +152,7 @@
 
                         {{ with .action.parameters }}
 
-                            <h3 class="mb-2">Arguments</h3>
+                            <h3 class="mb-2">{{ i18n "arguments" }}</h3>
 
                             {{ range . }}
                                 {{ if eq .in "query"}}
@@ -163,18 +169,18 @@
                             {{ $headerParams := $.Scratch.Get "headerParams" }}
 
                             {{ with $pathParams }}
-                                <h4 class="text-capitalize">Path Parameters</h4>
+                                <h4 class="text-capitalize">{{ i18n "path_parameters" }}</h4>
                                 <div class=" schema-table row">
                                     <div class="col-12">
                                       <div class="row table-header">
                                         <div class="col-4 column">
-                                          <p class="font-semibold">Name</p>
+                                          <p class="font-semibold">{{ i18n "name" }}</p>
                                         </div>
                                         <div class="col-2 column">
-                                          <p class="font-semibold">Type</p>
+                                          <p class="font-semibold">{{ i18n "type" }}</p>
                                         </div>
                                         <div class="col-6 column">
-                                          <p class="font-semibold">Description</p>
+                                          <p class="font-semibold">{{ i18n "description" }}</p>
                                         </div>
                                       </div>
                                       {{ range . }}
@@ -199,18 +205,18 @@
                             {{ end }}
 
                             {{ with $queryStrings }}
-                                <h4 class="text-capitalize">Query Strings</h4>
+                                <h4 class="text-capitalize">{{ i18n "query_strings" }}</h4>
                                 <div class=" schema-table row">
                                     <div class="col-12">
                                       <div class="row table-header">
                                         <div class="col-4 column">
-                                          <p class="font-semibold">Name</p>
+                                          <p class="font-semibold">{{ i18n "name" }}</p>
                                         </div>
                                         <div class="col-2 column">
-                                          <p class="font-semibold">Type</p>
+                                          <p class="font-semibold">{{ i18n "type" }}</p>
                                         </div>
                                         <div class="col-6 column">
-                                          <p class="font-semibold">Description</p>
+                                          <p class="font-semibold">{{ i18n "description" }}</p>
                                         </div>
                                       </div>
                                       {{ range . }}
@@ -236,18 +242,18 @@
 
 
                             {{ with $headerParams }}
-                                <h4 class="text-capitalize">Header Parameters</h4>
+                                <h4 class="text-capitalize">{{ i18n "header_parameters" }}</h4>
                                 <div class=" schema-table row">
                                     <div class="col-12">
                                       <div class="row table-header">
                                         <div class="col-4 column">
-                                          <p class="font-semibold">Name</p>
+                                          <p class="font-semibold">{{ i18n "name" }}</p>
                                         </div>
                                         <div class="col-2 column">
-                                          <p class="font-semibold">Type</p>
+                                          <p class="font-semibold">{{ i18n "type" }}</p>
                                         </div>
                                         <div class="col-6 column">
-                                          <p class="font-semibold">Description</p>
+                                          <p class="font-semibold">{{ i18n "description" }}</p>
                                         </div>
                                       </div>
                                       {{ range . }}
@@ -276,11 +282,11 @@
 
                         {{ if .action.requestBody }}
 
-                            <h3 class="mt-2 mb-3">Request</h3>
+                            <h3 class="mt-2 mb-3">{{ i18n "request" }}</h3>
 
                             <h4 class="text-capitalize mt-0 mb-1 py-0">Body Data <span class='text-capitalize'>{{ cond (eq .action.requestBody.required true) "(required)" "" }}</span></h4>
 
-                            <p>{{ .action.requestBody.description | markdownify }}</p>
+                            <p>{{ $paramsAction.request_description | default .action.requestBody.description | markdownify }}</p>
 
                             <div class="tab-content">
                                 {{ range $contentType, $content := .action.requestBody.content }}
@@ -315,10 +321,10 @@
 
                                                 <ul class="nav nav-tabs border-none response-toggle">
                                                     <li class="nav-item">
-                                                        <a class="nav-link mr-1  js-model-link active" href="#" data-toggle="tab">Model</a>
+                                                        <a class="nav-link mr-1  js-model-link active" href="#" data-toggle="tab">{{ i18n "model" }}</a>
                                                     </li>
                                                     <li class="nav-item">
-                                                        <a class="nav-link mr-1  js-example-link"  href="#" data-toggle="tab">Example</a>
+                                                        <a class="nav-link mr-1  js-example-link"  href="#" data-toggle="tab">{{ i18n "example" }}</a>
                                                     </li>
                                                 </ul>
 
@@ -330,7 +336,7 @@
                                                         <div class="code-snippet-wrapper js-code-block">
                                                             <div class="code-snippet">
                                                                 <div class="code-button-wrapper position-absolute">
-                                                                    <button class="btn text-primary js-copy-button">Copy</button>
+                                                                    <button class="btn text-primary js-copy-button">{{ i18n "copy" }}</button>
                                                                 </div>
                                                                 {{ print $json | safeHTML }}
                                                             </div>
@@ -345,7 +351,7 @@
 
                         {{ end }}
 
-                        <h3 class="mt-3 mb-2">Response</h3>
+                        <h3 class="mt-3 mb-2">{{ i18n "response" }}</h3>
 
                         <ul class="nav nav-tabs border-none response-toggle" style="z-index: 10;">
                             {{ $count := 0}}
@@ -360,10 +366,14 @@
                         <div class="tab-content mb-3">
                             {{ $count := 0}}
                             {{ range $response_code, $response := .action.responses }}
+                                {{ $paramsActionResponseDesc := $response.description }}
+                                {{ with $paramsAction.responses }}
+                                    {{ $paramsActionResponseDesc = index $paramsAction.responses $response_code }}
+                                {{ end }}
                                 <div role="tabpanel" class="tab-pane {{ if eq $count 0}} active {{end}}" id="{{ $context.action.operationId }}-{{ $response_code }}">
                                     {{ with $response.content }}
 
-                                        <p class="mb-2">{{$response.description}}</p>
+                                        <p class="mb-2">{{ $paramsActionResponseDesc | default $response.description }}</p>
 
                                         {{ range $content := . }}
                                             {{ range $schema := $content }}
@@ -390,10 +400,10 @@
 
                                                 <ul class="nav nav-tabs border-none response-toggle">
                                                     <li class="nav-item">
-                                                        <a class="nav-link mr-1  js-model-link active"  href="#" data-toggle="tab">Model</a>
+                                                        <a class="nav-link mr-1  js-model-link active"  href="#" data-toggle="tab">{{ i18n "model" }}</a>
                                                     </li>
                                                     <li class="nav-item">
-                                                        <a class="nav-link mr-1  js-example-link"  href="#" data-toggle="tab">Example</a>
+                                                        <a class="nav-link mr-1  js-example-link"  href="#" data-toggle="tab">{{ i18n "example" }}</a>
                                                     </li>
                                                 </ul>
 
@@ -411,7 +421,7 @@
                                                         <div class="code-snippet-wrapper js-code-block">
                                                             <div class="code-snippet">
                                                                 <div class="code-button-wrapper position-absolute">
-                                                                    <button class="btn text-primary js-copy-button">Copy</button>
+                                                                    <button class="btn text-primary js-copy-button">{{ i18n "copy" }}</button>
                                                                 </div>
                                                                 {{ $json }}
                                                             </div>
@@ -429,7 +439,7 @@
                         </div>
 
 
-                        <h3 class="mb-2">Code Example</h3>
+                        <h3 class="mb-2">{{ i18n "code_example" }}</h3>
 
                         <div class="code-snippet-wrapper js-code-snippet-wrapper" >
                             <ul class="nav nav-tabs border-none response-toggle">
@@ -467,7 +477,7 @@
                             {{ $lang := index $dot.Site.Data.highlighting.languages "sh" }}
                             <div class="code-snippet js-code-block {{if eq $file_extension "sh"}} default {{end }} {{ if eq $count 0}}d-block{{else}}d-none{{end}} code-block-{{ $lang.pygments_name }}" >
                                 <div class="code-button-wrapper position-absolute">
-                                    <button class="btn text-primary js-copy-button">Copy</button>
+                                    <button class="btn text-primary js-copy-button">{{ i18n "copy" }}</button>
                                 </div>
                                 <div class="highlight">
                                     <pre class="chroma">
@@ -513,7 +523,7 @@
                                     {{ if ne $file_extension "sh"}}
                                     <div class="code-snippet js-code-block {{if eq $file_extension "sh"}} default {{end }} {{ if eq $count 0}}d-block{{else}}d-none{{end}} code-block-{{ $lang.pygments_name }}" >
                                         <div class="code-button-wrapper position-absolute">
-                                            <button class="btn text-primary js-copy-button">Copy</button>
+                                            <button class="btn text-primary js-copy-button">{{ i18n "copy" }}</button>
                                         </div>
                                         {{ highlight $file_content $lang.pygments_name "" }}
                                     </div>
